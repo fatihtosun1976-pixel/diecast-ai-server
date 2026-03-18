@@ -1,5 +1,4 @@
 import express from "express";
-import fetch from "node-fetch";
 import dotenv from "dotenv";
 
 dotenv.config();
@@ -7,7 +6,6 @@ dotenv.config();
 const app = express();
 app.use(express.json({ limit: "10mb" }));
 
-// TEST
 app.get("/", (req, res) => {
   res.json({
     ok: true,
@@ -16,7 +14,13 @@ app.get("/", (req, res) => {
   });
 });
 
-// 🔥 AI ENDPOINT
+app.get("/ai", (req, res) => {
+  res.json({
+    ok: true,
+    message: "AI endpoint ayakta. POST ile kullan."
+  });
+});
+
 app.post("/ai", async (req, res) => {
   try {
     const { image } = req.body;
@@ -37,7 +41,10 @@ app.post("/ai", async (req, res) => {
           {
             role: "user",
             content: [
-              { type: "input_text", text: "Bu diecast aracı analiz et: marka, model, ölçek tahmin et" },
+              {
+                type: "input_text",
+                text: "Bu diecast aracı analiz et. Mümkünse diecastBrand, vehicleMake, model, year, scale, series, color, condition, notes, estimatedValue alanlarını tahmin et. Kısa ve düz JSON dön."
+              },
               {
                 type: "input_image",
                 image_url: image
@@ -50,18 +57,19 @@ app.post("/ai", async (req, res) => {
 
     const data = await response.json();
 
-    res.json({
+    return res.json({
       success: true,
-      result: data.output_text
+      data
     });
-
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: "AI hata verdi" });
+    return res.status(500).json({
+      error: "AI hata verdi",
+      details: String(err)
+    });
   }
 });
 
-// Render PORT
 const PORT = process.env.PORT || 10000;
 app.listen(PORT, () => {
   console.log("Server running on port " + PORT);
