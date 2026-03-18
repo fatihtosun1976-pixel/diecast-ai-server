@@ -1,12 +1,12 @@
 import express from "express";
-import dotenv from "dotenv";
-
 import cors from "cors";
-app.use(cors());
+import dotenv from "dotenv";
 
 dotenv.config();
 
 const app = express();
+
+app.use(cors());
 app.use(express.json({ limit: "10mb" }));
 
 app.get("/", (req, res) => {
@@ -46,7 +46,7 @@ app.post("/ai", async (req, res) => {
             content: [
               {
                 type: "input_text",
-                text: "Bu diecast aracı analiz et. Mümkünse diecastBrand, vehicleMake, model, year, scale, series, color, condition, notes, estimatedValue alanlarını tahmin et. Kısa ve düz JSON dön."
+                text: "Bu diecast aracı analiz et. diecastBrand, vehicleMake, model, year, scale, series, color, condition, notes, estimatedValue alanlarını tahmin et."
               },
               {
                 type: "input_image",
