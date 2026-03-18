@@ -1,36 +1,68 @@
 import express from "express";
-import cors from "cors";
+import fetch from "node-fetch";
+import dotenv from "dotenv";
+
+dotenv.config();
+
 const app = express();
-app.use(cors());
-app.use(express.json({ limit: "20mb" }));
-const PORT = process.env.PORT || 3000;
-const OPENAI_API_KEY = process.env.OPENAI_API_KEY || "";
-app.get("/", (req, res) => res.json({ ok: true, service: "DieCast AI API", port: PORT }));
+app.use(express.json({ limit: "10mb" }));
+
+// TEST
+app.get("/", (req, res) => {
+  res.json({
+    ok: true,
+    service: "DieCast AI API",
+    port: process.env.PORT
+  });
+});
+
+// 🔥 AI ENDPOINT
 app.post("/ai", async (req, res) => {
   try {
-    if (!OPENAI_API_KEY) return res.status(500).json({ error: true, message: "OPENAI_API_KEY tanımlı değil." });
-    const image = req.body?.image;
-    if (!image) return res.status(400).json({ error: true, message: "image alanı gerekli." });
-    const prompt = `Sen diecast koleksiyon uzmanısın. Sadece JSON döndür:
-    {"diecastBrand":"","vehicleMake":"","model":"","year":"","scale":"","series":"","color":"","condition":"","notes":"","estimatedValue":""}`;
-    const response = await fetch("https://api.openai.com/v1/chat/completions", {
+    const { image } = req.body;
+
+    if (!image) {
+      return res.status(400).json({ error: "image gerekli" });
+    }
+
+    const response = await fetch("https://api.openai.com/v1/responses", {
       method: "POST",
-      headers: { "Authorization": `Bearer ${OPENAI_API_KEY}`, "Content-Type": "application/json" },
+      headers: {
+        "Authorization": `Bearer ${process.env.OPENAI_API_KEY}`,
+        "Content-Type": "application/json"
+      },
       body: JSON.stringify({
-        model: "gpt-4o-mini",
-        temperature: 0.2,
-        response_format: { type: "json_object" },
-        messages: [{ role: "user", content: [{ type: "text", text: prompt }, { type: "image_url", image_url: { url: image } }] }]
+        model: "gpt-4.1-mini",
+        input: [
+          {
+            role: "user",
+            content: [
+              { type: "input_text", text: "Bu diecast aracı analiz et: marka, model, ölçek tahmin et" },
+              {
+                type: "input_image",
+                image_url: image
+              }
+            ]
+          }
+        ]
       })
     });
+
     const data = await response.json();
-    if (!response.ok) return res.status(response.status).json({ error: true, message: "OpenAI isteği başarısız.", details: data });
-    const text = data?.choices?.[0]?.message?.content || "{}";
-    let parsed = {};
-    try { parsed = JSON.parse(text); } catch { parsed = {}; }
-    res.json(parsed);
+
+    res.json({
+      success: true,
+      result: data.output_text
+    });
+
   } catch (err) {
-    res.status(500).json({ error: true, message: "Sunucu hatası.", details: String(err) });
+    console.error(err);
+    res.status(500).json({ error: "AI hata verdi" });
   }
 });
-app.listen(PORT, "0.0.0.0", () => console.log(`DieCast AI API çalışıyor: http://0.0.0.0:${PORT}`));
+
+// Render PORT
+const PORT = process.env.PORT || 10000;
+app.listen(PORT, () => {
+  console.log("Server running on port " + PORT);
+});
